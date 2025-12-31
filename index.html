@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistik Pro - Giyas 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body class="min-h-screen flex flex-col font-sans">
+
+    <header class="main-header text-white p-4 shadow-lg sticky top-0 z-50 flex justify-between items-center glass-header">
+        <h1 class="text-xl font-bold flex items-center gap-2 tracking-wider">
+            <i data-lucide="truck" class="text-blue-400"></i> Logistics Pro
+        </h1>
+        <span class="text-xs opacity-75 font-mono">v2.1 Giyas 2026</span>
+    </header>
+
+    <div class="flex nav-container shadow-sm relative z-10">
+        <button onclick="switchTab('upload')" id="tabUpload" class="flex-1 py-3 font-semibold tab-active">Upload Data</button>
+        <button onclick="switchTab('history')" id="tabHistory" class="flex-1 py-3 font-semibold text-gray-400">Riwayat</button>
+    </div>
+
+    <main class="flex-grow p-4 max-w-md mx-auto w-full relative z-10">
+        
+        <div id="sectionUpload" class="space-y-6 mt-4">
+            <div class="main-card glass-effect rounded-3xl shadow-2xl p-6 space-y-6 border border-white/10">
+                <div>
+                    <label class="block text-sm font-bold text-blue-300 mb-2 tracking-wide">NOMOR SURAT JALAN</label>
+                    <input type="text" id="noSuratJalan" placeholder="CONTOH: SJ-2026-001" 
+                        class="custom-input w-full px-4 py-4 rounded-xl outline-none transition uppercase font-bold text-lg">
+                </div>
+                
+                <div class="w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent my-6"></div>
+
+                <div class="space-y-4" id="photoInputs">
+                    </div>
+
+                <button id="btnSubmit" onclick="uploadData()" 
+                    class="btn-powerful w-full text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all flex justify-center items-center gap-3 text-lg">
+                    <i data-lucide="save"></i> PROSES LAPORAN
+                </button>
+            </div>
+        </div>
+
+        <div id="sectionHistory" class="hidden space-y-4 mt-4">
+            <div class="glass-effect p-4 rounded-xl shadow-sm space-y-3 border border-white/10">
+                <label class="block text-sm font-bold text-blue-300">Filter Tanggal Laporan</label>
+                <div class="flex gap-3">
+                    <input type="date" id="filterTanggal" class="custom-input flex-grow p-3 rounded-lg outline-none text-white">
+                    <button onclick="searchByDate()" class="btn-powerful px-6 rounded-lg flex items-center justify-center"><i data-lucide="search"></i></button>
+                </div>
+            </div>
+            <div id="historyResults" class="space-y-4 text-sm text-center text-gray-300 glass-effect p-6 rounded-xl border border-white/10 italic">
+                Silahkan pilih tanggal untuk melihat data.
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="p-6 text-center text-gray-400 text-sm relative z-10">
+        <p class="font-semibold">&copy; GIYAS 2026</p>
+        <p class="text-xs opacity-60">Secure Logistics System</p>
+    </footer>
+
+    <div id="loadingOverlay" class="fixed inset-0 bg-[#0f172a]/90 backdrop-blur-md hidden flex-col items-center justify-center z-[100] text-white p-6 text-center">
+        <div class="loading-spinner w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mb-6"></div>
+        <p id="loadingStatus" class="text-xl font-bold animate-pulse">Memproses Data...</p>
+    </div>
+
+    <script type="module">
+        // --- JAVASCRIPT ANDA (TIDAK ADA PERUBAHAN LOGIKA) ---
+        // Saya hanya mengubah sedikit bagian render input foto agar sesuai desain baru.
+        
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDocs, collection, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        // KONFIGURASI FIREBASE ANDA (TETAP SAMA)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhvD6j5mWKuZl2fM4AoOH15FcoqUGDejM",
+            authDomain: "truck-chat-d5de0.firebaseapp.com",
+            projectId: "truck-chat-d5de0",
+            storageBucket: "truck-chat-d5de0.firebasestorage.app",
+            messagingSenderId: "191337056448",
+            appId: "1:191337056448:web:42893e12d035df2daec525"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        const categories = [
+            { id: 'foto_1', label: '1. Produk Akan Dimuat' },
+            { id: 'foto_2', label: '2. Produk Sudah Dimuat' },
+            { id: 'foto_3', label: '3. Produk Sebelum Bongkar' },
+            { id: 'foto_4', label: '4. Produk Sesudah Bongkar' },
+            { id: 'foto_5', label: '5. Foto Surat Jalan Wajib TTD & Stamp' }
+        ];
+
+        // Render inputs (DIUPDATE SEDIKIT UNTUK CSS BARU)
+        const container = document.getElementById('photoInputs');
+        categories.forEach(cat => {
+            container.innerHTML += `
+                <div class="photo-input-container p-3 rounded-xl border border-white/10 flex items-center justify-between gap-4 transition-all hover:bg-white/5">
+                    <div class="flex-grow">
+                         <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">${cat.label}</label>
+                         <div id="${cat.id}_preview" class="text-xs text-blue-300/70 italic font-mono truncate">Menunggu foto...</div>
+                    </div>
+                    <div>
+                        <input type="file" accept="image/*" capture="environment" id="${cat.id}" class="hidden" onchange="window.previewImage(this, '${cat.id}_preview')">
+                        <button onclick="document.getElementById('${cat.id}').click()" class="camera-btn bg-blue-600/20 border border-blue-500/30 shadow-lg p-3 rounded-full active:scale-90 transition-transform">
+                            <i data-lucide="camera" class="text-blue-400 w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>`;
+        });
+        lucide.createIcons();
+
+        // --- SEMUA FUNGSI DI BAWAH INI TETAP SAMA ---
+        async function addWatermark(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Style Watermark
+                        const padding = canvas.width * 0.05;
+                        const fontSize = canvas.width * 0.04;
+                        ctx.font = `bold ${fontSize}px Arial`;
+                        
+                        const now = new Date();
+                        const text = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')} | GIYAS LOGISTICS`;
+                        
+                        // Background hitam transparan untuk teks
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+                        ctx.fillRect(0, canvas.height - (fontSize * 2.5), canvas.width, fontSize * 2.5);
+                        
+                        ctx.fillStyle = "#FFD700"; // Warna Emas
+                        ctx.fillText(text, padding, canvas.height - (fontSize * 0.8));
+                        
+                        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.8);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        window.uploadData = async () => {
+            const noSJ = document.getElementById('noSuratJalan').value.trim().toUpperCase();
+            if (!noSJ) return alert('Nomor Surat Jalan wajib diisi!');
+
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex'); // Pastikan flex agar di tengah
+
+            try {
+                const now = new Date();
+                const dateKey = now.toISOString().split('T')[0];
+                let imageUrls = {};
+
+                for (let cat of categories) {
+                    const fileInput = document.getElementById(cat.id);
+                    if (fileInput.files[0]) {
+                        document.getElementById('loadingStatus').innerText = `Memproses: ${cat.label}...`;
+                        
+                        const watermarkedBlob = await addWatermark(fileInput.files[0]);
+                        // Kompresi sedikit diperlonggar agar kualitas lebih baik
+                        const compressedFile = await imageCompression(watermarkedBlob, { maxSizeMB: 0.8, maxWidthOrHeight: 1920, useWebWorker: true });
+
+                        const storageRef = ref(storage, `logistik_v2/${dateKey}/${noSJ}/${cat.id}.jpg`);
+                        await uploadBytes(storageRef, compressedFile);
+                        imageUrls[cat.id] = await getDownloadURL(storageRef);
+                    }
+                }
+
+                await setDoc(doc(db, "pengiriman_v2", noSJ), {
+                    nomor_sj: noSJ,
+                    tanggal_indeks: dateKey,
+                    foto: imageUrls,
+                    waktu_simpan: serverTimestamp(),
+                    app_version: "2.1"
+                });
+
+                alert("Laporan Berhasil Terkirim!");
+                location.reload();
+            } catch (error) {
+                alert("Error: " + error.message);
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+        };
+
+        window.searchByDate = async () => {
+            const targetDate = document.getElementById('filterTanggal').value;
+            const resultsDiv = document.getElementById('historyResults');
+            if (!targetDate) return alert("Pilih tanggal!");
+
+            resultsDiv.innerHTML = '<div class="animate-pulse">Mencari data di server...</div>';
+            
+            const q = query(collection(db, "pengiriman_v2"), where("tanggal_indeks", "==", targetDate));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                resultsDiv.innerHTML = "Tidak ada data pengiriman pada tanggal ini.";
+                return;
+            }
+
+            let html = "";
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                html += `
+                    <div class="glass-effect p-4 rounded-xl shadow-sm text-left border-l-4 border-blue-500 mb-4">
+                        <div class="font-bold text-blue-300 text-lg">${data.nomor_sj}</div>
+                        <div class="text-[10px] text-gray-400 mb-3 italic">Waktu Simpan: ${data.waktu_simpan?.toDate().toLocaleString()}</div>
+                        <div class="grid grid-cols-5 gap-2">
+                            ${Object.values(data.foto).map(url => `<div class="aspect-square rounded-lg overflow-hidden shadow-md border border-white/10"><img src="${url}" class="w-full h-full object-cover"></div>`).join('')}
+                        </div>
+                    </div>`;
+            });
+            resultsDiv.innerHTML = html;
+        };
+
+        window.switchTab = (tab) => {
+            if(tab === 'upload') {
+                document.getElementById('sectionUpload').classList.remove('hidden');
+                document.getElementById('sectionHistory').classList.add('hidden');
+                document.getElementById('tabUpload').className = "flex-1 py-3 font-bold text-blue-400 border-b-2 border-blue-500 tracking-wide transition-all";
+                document.getElementById('tabHistory').className = "flex-1 py-3 font-semibold text-gray-500 hover:text-gray-300 transition-all";
+            } else {
+                document.getElementById('sectionUpload').classList.add('hidden');
+                document.getElementById('sectionHistory').classList.remove('hidden');
+                document.getElementById('tabHistory').className = "flex-1 py-3 font-bold text-blue-400 border-b-2 border-blue-500 tracking-wide transition-all";
+                document.getElementById('tabUpload').className = "flex-1 py-3 font-semibold text-gray-500 hover:text-gray-300 transition-all";
+            }
+        }
+
+        window.previewImage = (input, previewId) => {
+            const preview = document.getElementById(previewId);
+            if (input.files && input.files[0]) {
+                preview.innerHTML = `<span class="text-green-400 font-bold italic flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> Siap Upload</span>`;
+                lucide.createIcons();
+            }
+        }
+    </script>
+</body>
+</html>

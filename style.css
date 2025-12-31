@@ -1,0 +1,145 @@
+/* Definisi Variabel Warna */
+:root {
+    --primary-blue: #3b82f6; /* Biru Tailwind */
+    --accent-blue: #60a5fa; /* Biru lebih terang */
+    --dark-bg: #0f172a; /* Biru malam sangat gelap */
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(15, 23, 42, 0.75); /* Background semi-transparan gelap */
+}
+
+/* --- 1. SETUP BACKGROUND POWERFUL --- */
+body {
+    /* Menggunakan linear-gradient ganda untuk membuat overlay gelap kebiruan 
+       di atas gambar agar teks putih terbaca jelas.
+       GANTI 'truck10.jpeg' JIKA NAMA FILE ANDA BERBEDA.
+    */
+    background: linear-gradient(to bottom, rgba(10, 15, 30, 0.85), rgba(10, 15, 30, 0.95)),
+                url('truck10.jpeg'); /* Pastikan file gambar ada di folder yang sama */
+    
+    background-size: cover;      /* Gambar memenuhi layar */
+    background-position: center; /* Gambar di tengah */
+    background-attachment: fixed; /* Gambar diam saat di-scroll (efek mewah) */
+    background-repeat: no-repeat;
+    color: #e2e8f0; /* Warna teks default menjadi putih keabuan */
+}
+
+
+/* --- 2. EFEK KACA (GLASSMORPHISM) --- */
+/* Kelas ini akan dipakai di banyak tempat */
+.glass-effect {
+    background: var(--glass-bg); /* Latar belakang transparan gelap */
+    backdrop-filter: blur(12px); /* Efek buram pada background di belakang elemen */
+    -webkit-backdrop-filter: blur(12px); /* Dukungan untuk Safari */
+    border: 1px solid var(--glass-border); /* Garis tepi tipis */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5); /* Bayangan lembut tapi dalam */
+}
+
+/* Header Khusus */
+.glass-header {
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+/* Kontainer Navigasi Tab */
+.nav-container {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+/* Tab Aktif */
+.tab-active {
+    color: var(--accent-blue) !important;
+    border-bottom: 3px solid var(--primary-blue);
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); /* Efek cahaya biru */
+}
+
+
+/* --- 3. STYLING FORMULIR YANG KUAT --- */
+
+/* Input Teks (Surat Jalan & Tanggal) */
+.custom-input {
+    background: rgba(0, 0, 0, 0.3) !important; /* Background input lebih gelap */
+    border: 2px solid rgba(59, 130, 246, 0.3); /* Border biru samar */
+    color: white !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.custom-input:focus {
+    border-color: var(--accent-blue); /* Border menyala saat diklik */
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.5) !important;
+}
+
+.custom-input::placeholder {
+    color: rgba(255, 255, 255, 0.4); /* Placeholder samar */
+    font-weight: normal;
+    font-size: 0.9rem;
+}
+
+/* Kontainer Input Foto */
+.photo-input-container {
+    background: rgba(255, 255, 255, 0.03);
+    transition: all 0.3s ease;
+}
+.photo-input-container:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+
+/* --- 4. TOMBOL "POWERFUL" --- */
+.btn-powerful {
+    /* Gradasi biru yang kuat */
+    background: linear-gradient(135deg, var(--primary-blue), #2563eb);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4), /* Bayangan biru menyala */
+                inset 0 1px 0 rgba(255, 255, 255, 0.2); /* Highlight atas */
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Efek kilatan saat hover pada tombol */
+.btn-powerful::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(to bottom right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+    transform: rotate(45deg);
+    transition: all 0.5s;
+    opacity: 0;
+}
+
+.btn-powerful:hover::after {
+    opacity: 1;
+    transform: rotate(45deg) translate(50%, 50%);
+}
+
+.btn-powerful:active {
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5);
+    transform: scale(0.98);
+}
+
+/* Tombol Kamera Kecil */
+.camera-btn {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+.camera-btn:hover {
+    background: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+/* --- 5. ANIMASI LOADING SPINNER --- */
+.loading-spinner {
+    border-top-color: var(--accent-blue);
+    animation: spinner 1s linear infinite;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+@keyframes spinner { 
+    0% { transform: rotate(0deg); } 
+    100% { transform: rotate(360deg); } 
+}
